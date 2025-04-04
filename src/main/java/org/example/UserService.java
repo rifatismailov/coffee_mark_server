@@ -27,6 +27,7 @@ public class UserService {
         user.setPassword(request.getPassword());
         user.setEmail(request.getEmail());
         user.setRole(Role.valueOf(request.getRole()));
+        user.setCafeImage(request.getCafeImage());
         if (Role.BARISTA.equals(user.getRole())) {
             System.out.println(request.getCafeList());
             List<Cafe> cafes = request.getCafeList().stream().map(c -> {
