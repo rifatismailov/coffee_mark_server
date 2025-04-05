@@ -1,8 +1,9 @@
 package org.example.user;
 
-import org.example.RegisterRequest;
-import org.example.RegisterResponse;
-import org.example.UserService;
+import org.example.LocalErrorResponse;
+import org.example.registration.RegisterRequest;
+import org.example.registration.RegisterResponse;
+import org.example.registration.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -23,28 +24,11 @@ public class UserController {
             return ResponseEntity.ok(registeredUser);
         } catch (RuntimeException e) {
             // Повний JSON-звіт про помилку
-            return ResponseEntity.ok(new ErrorResponse("Помилка реєстрації", e.getMessage()));
+            return ResponseEntity.ok( new LocalErrorResponse("Помилка реєстрації", e.getMessage()));
         }
     }
 
-    // Клас для звітів про помилки
-    static class ErrorResponse {
-        private String status;
-        private String message;
 
-        public ErrorResponse(String status, String message) {
-            this.status = status;
-            this.message = message;
-        }
-
-        public String getStatus() {
-            return status;
-        }
-
-        public String getMessage() {
-            return message;
-        }
-    }
 }
 
 

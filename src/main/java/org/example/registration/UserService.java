@@ -1,6 +1,7 @@
-package org.example;
+package org.example.registration;
 
 import org.example.cafe.Cafe;
+import org.example.user.Role;
 import org.example.user.User;
 import org.example.user.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;

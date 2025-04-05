@@ -1,4 +1,4 @@
-package org.example;
+package org.example.security;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -21,7 +21,9 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable()) // Вимикаємо CSRF (не потрібно для REST API)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // Відключаємо сесії
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/register", "/api/auth/login").permitAll() // Дозволяємо доступ без авторизації
+                        .requestMatchers("/api/auth/register",
+                                "/api/auth/login",
+                                "/api/auth/public-key").permitAll() // Дозволяємо доступ без авторизації
                         .anyRequest().authenticated() // Усі інші запити потребують аутентифікації
                 )
                 .cors(withDefaults()) // Дозволяємо CORS

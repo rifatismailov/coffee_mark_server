@@ -1,4 +1,4 @@
-package org.example;
+package org.example.registration;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.Column;
