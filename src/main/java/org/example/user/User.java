@@ -30,9 +30,10 @@ public class User {
 
     @Enumerated(EnumType.STRING)
     private Role role; // CLIENT або BARISTA
+
     @NotBlank
-    @Column(name = "cafe_image") // Додаємо нове поле до таблиці
-    private String cafeImage;
+    private String image;
+
     @OneToMany(mappedBy = "barista", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Cafe> cafes = new ArrayList<>();
 }

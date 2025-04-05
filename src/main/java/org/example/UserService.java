@@ -27,13 +27,14 @@ public class UserService {
         user.setPassword(request.getPassword());
         user.setEmail(request.getEmail());
         user.setRole(Role.valueOf(request.getRole()));
-        user.setCafeImage(request.getCafeImage());
+        user.setImage(request.getImage());
         if (Role.BARISTA.equals(user.getRole())) {
             System.out.println(request.getCafeList());
             List<Cafe> cafes = request.getCafeList().stream().map(c -> {
                 Cafe cafe = new Cafe();
                 cafe.setName(c.getName());
                 cafe.setAddress(c.getAddress());
+                cafe.setCafe_image(c.getCafe_image());
                 cafe.setBarista(user);
                 System.out.println(cafe.getName());
 

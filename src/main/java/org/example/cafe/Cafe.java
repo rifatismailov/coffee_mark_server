@@ -25,6 +25,9 @@ public class Cafe {
     @NotBlank
     private String address;
 
+    @NotBlank
+    private String cafe_image;
+
     @ManyToOne
     @JoinColumn(name = "barista_id")
     private User barista;
