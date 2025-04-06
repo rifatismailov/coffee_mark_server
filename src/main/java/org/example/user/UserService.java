@@ -1,9 +1,8 @@
-package org.example.registration;
+package org.example.user;
 
 import org.example.cafe.Cafe;
-import org.example.user.Role;
-import org.example.user.User;
-import org.example.user.UserRepository;
+import org.example.registration.RegisterRequest;
+import org.example.registration.RegisterResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 

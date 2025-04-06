@@ -1,12 +1,12 @@
 package org.example.security;
 
+import org.example.until.KeyUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Component;
 
-import javax.crypto.Cipher;
 import java.io.*;
 import java.nio.file.*;
 import java.security.*;
@@ -20,7 +20,7 @@ public class RSAKeyExists implements ApplicationRunner {
     private static final String KEY_DIRECTORY = "src/main/resources/";
     private static final String PUBLIC_KEY_PATH = KEY_DIRECTORY + "/public.pem";
     private static final String PRIVATE_KEY_PATH = KEY_DIRECTORY + "/private.pem";
-    private  static final String TEST="coffee mark";
+    private static final String TEST = "coffee mark";
 
     @Override
     public void run(ApplicationArguments args) throws Exception {
@@ -60,8 +60,8 @@ public class RSAKeyExists implements ApplicationRunner {
         Files.createDirectories(Paths.get(KEY_DIRECTORY));
 
         // Запис ключів
-        Files.write(Paths.get(PUBLIC_KEY_PATH), publicKeyPem.getBytes());
-        Files.write(Paths.get(PRIVATE_KEY_PATH), privateKeyPem.getBytes());
+        KeyUtils.saveKey(PUBLIC_KEY_PATH, publicKeyPem);
+        KeyUtils.saveKey(PRIVATE_KEY_PATH, privateKeyPem);
 
         logger.info("New RSA keys are generated and saved.");
     }
@@ -82,16 +82,11 @@ public class RSAKeyExists implements ApplicationRunner {
             PrivateKey privateKey = keyFactory.generatePrivate(privSpec);
 
             // Перевірка: шифруємо текст публічним, розшифровуємо приватним
-            byte[] testMessage = TEST.getBytes();
-            Cipher encryptCipher = Cipher.getInstance("RSA");
-            encryptCipher.init(Cipher.ENCRYPT_MODE, publicKey);
-            byte[] encrypted = encryptCipher.doFinal(testMessage);
 
-            Cipher decryptCipher = Cipher.getInstance("RSA");
-            decryptCipher.init(Cipher.DECRYPT_MODE, privateKey);
-            byte[] decrypted = decryptCipher.doFinal(encrypted);
+            String encryptedText = Encryptor.encrypt(TEST, publicKey);
+            String decryptedText = Decryptor.decrypt(encryptedText, privateKey);
 
-            return new String(decrypted).equals(TEST);
+            return decryptedText.equals(TEST);
 
         } catch (Exception e) {
             return false;

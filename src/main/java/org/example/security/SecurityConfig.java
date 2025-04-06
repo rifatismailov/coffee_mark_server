@@ -22,7 +22,7 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // Відключаємо сесії
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/register",
-                                "/api/auth/login",
+                                "/api/auth/authorization",
                                 "/api/auth/public-key").permitAll() // Дозволяємо доступ без авторизації
                         .anyRequest().authenticated() // Усі інші запити потребують аутентифікації
                 )
