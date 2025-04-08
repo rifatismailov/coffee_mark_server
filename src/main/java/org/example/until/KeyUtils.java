@@ -14,6 +14,13 @@ import java.io.IOException;
 
 public class KeyUtils {
 
+    public static PublicKey loadPublicKey(String pem) throws Exception {
+        byte[] encoded = Base64.getDecoder().decode(getReplaceText(pem));
+        X509EncodedKeySpec keySpec = new X509EncodedKeySpec(encoded);
+        KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+        return keyFactory.generatePublic(keySpec);
+    }
+
 
     public static PublicKey loadPublicKey(File publicKeyFile) {
         try {
@@ -38,19 +45,20 @@ public class KeyUtils {
     }
 
     private static byte[] readKeyBytes(File file) throws IOException {
-        String key = new String(Files.readAllBytes(file.toPath()))
+        return Base64.getDecoder().decode(getReplaceText(new String(Files.readAllBytes(file.toPath()))));
+    }
+
+    private static String getReplaceText(String text) {
+        return text
                 .replaceAll("-----BEGIN (.*)-----", "")
                 .replaceAll("-----END (.*)-----", "")
                 .replaceAll("\n", "")
                 .trim();
-
-        return Base64.getDecoder().decode(key);
     }
 
     public static void saveKey(String key_path, String pem) throws IOException {
         // Отримуємо потік для запису в файл у внутрішньому сховищі
         Files.write(Paths.get(key_path), pem.getBytes());
     }
-
 
 }

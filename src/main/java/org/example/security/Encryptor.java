@@ -7,7 +7,7 @@ import java.util.Base64;
 
 public class Encryptor {
     // Шифрування пароля
-    public static String encrypt(String password, PublicKey publicKey) throws Exception {
+    public static String encryptText(String password, PublicKey publicKey) throws Exception {
         Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
         cipher.init(Cipher.ENCRYPT_MODE, publicKey);
 

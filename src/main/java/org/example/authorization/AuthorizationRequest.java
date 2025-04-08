@@ -4,8 +4,8 @@ import lombok.Getter;
 
 @Getter
 public class AuthorizationRequest {
-    private  String email;
-    private  String password;
-
+    private String email;
+    private String password;
+    private String hash_user_public;
 }
 

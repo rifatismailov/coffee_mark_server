@@ -21,6 +21,9 @@ public class RegisterRequest {
     private String role;
     @Column
     private String image;
+    @Column
+    private String public_key;  // Зберігаємо у Base64-форматі
+
     @JsonProperty("cafes")  // Додаємо анотацію для мапінгу
     private List<CafeRequest> cafeList; // Тепер ім'я залишається як cafeList на сервері
 

@@ -8,6 +8,9 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.example.user.User;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Entity
 @Table(name = "cafes")
 @Getter
@@ -31,5 +34,9 @@ public class Cafe {
     @ManyToOne
     @JoinColumn(name = "barista_id")
     private User barista;
+
+    // Список клієнтів, які вибрали це кафе
+    @ManyToMany(mappedBy = "selectedCafes")
+    private List<User> clients = new ArrayList<>();
 }
 

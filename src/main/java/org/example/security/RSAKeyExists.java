@@ -10,7 +10,6 @@ import org.springframework.stereotype.Component;
 import java.io.*;
 import java.nio.file.*;
 import java.security.*;
-import java.security.spec.*;
 import java.util.Base64;
 
 @Component
@@ -69,21 +68,10 @@ public class RSAKeyExists implements ApplicationRunner {
     private boolean keysMatch(File publicKeyFile, File privateKeyFile) {
         try {
             // Зчитування ключів з файлів
-            byte[] publicBytes = readKeyBytes(publicKeyFile);
-            byte[] privateBytes = readKeyBytes(privateKeyFile);
-
-            // Створення об'єктів ключів
-            KeyFactory keyFactory = KeyFactory.getInstance("RSA");
-
-            X509EncodedKeySpec pubSpec = new X509EncodedKeySpec(publicBytes);
-            PublicKey publicKey = keyFactory.generatePublic(pubSpec);
-
-            PKCS8EncodedKeySpec privSpec = new PKCS8EncodedKeySpec(privateBytes);
-            PrivateKey privateKey = keyFactory.generatePrivate(privSpec);
-
+            PublicKey publicKey = KeyUtils.loadPublicKey(publicKeyFile);
+            PrivateKey privateKey = KeyUtils.loadPrivateKey(privateKeyFile);
             // Перевірка: шифруємо текст публічним, розшифровуємо приватним
-
-            String encryptedText = Encryptor.encrypt(TEST, publicKey);
+            String encryptedText = Encryptor.encryptText(TEST, publicKey);
             String decryptedText = Decryptor.decrypt(encryptedText, privateKey);
 
             return decryptedText.equals(TEST);
@@ -93,14 +81,5 @@ public class RSAKeyExists implements ApplicationRunner {
         }
     }
 
-    private byte[] readKeyBytes(File file) throws IOException {
-        String key = new String(Files.readAllBytes(file.toPath()))
-                .replaceAll("-----BEGIN (.*)-----", "")
-                .replaceAll("-----END (.*)-----", "")
-                .replaceAll("\n", "")
-                .trim();
-
-        return Base64.getDecoder().decode(key);
-    }
 }
 
