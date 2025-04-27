@@ -3,10 +3,7 @@ package org.example.authorization;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import jakarta.persistence.Column;
 import lombok.*;
-import org.example.user.Role;
-
 import java.util.HashMap;
 import java.util.Map;
 

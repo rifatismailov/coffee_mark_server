@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.example.user.User;
+import org.example.user.UserCafe;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -35,8 +36,9 @@ public class Cafe {
     @JoinColumn(name = "barista_id")
     private User barista;
 
-    // Список клієнтів, які вибрали це кафе
-    @ManyToMany(mappedBy = "selectedCafes")
-    private List<User> clients = new ArrayList<>();
+
+    @OneToMany(mappedBy = "cafe", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<UserCafe> users = new ArrayList<>();
+
 }
 

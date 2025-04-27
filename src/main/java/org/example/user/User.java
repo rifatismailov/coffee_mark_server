@@ -44,14 +44,9 @@ public class User {
     @OneToMany(mappedBy = "barista", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Cafe> cafes = new ArrayList<>();
 
-    // Якщо клієнт — список кафе, які він вибрав
-    @ManyToMany
-    @JoinTable(
-            name = "user_cafes",
-            joinColumns = @JoinColumn(name = "user_id"),
-            inverseJoinColumns = @JoinColumn(name = "cafe_id")
-    )
-    private List<Cafe> selectedCafes = new ArrayList<>();
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<UserCafe> selectedCafes = new ArrayList<>();
+
 }
 
 

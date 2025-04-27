@@ -109,6 +109,7 @@ public class UserService {
             User user = createUserFromRequest(request, username, email, password, image);
 
             if (user.getRole() == Role.BARISTA) {
+                System.out.println(request.getCafeList());
                 if (request.getCafeList() == null || request.getCafeList().isEmpty()) {
                     return ResponseEntity.badRequest()
                             .body(new RegisterResponse(false, "Баріста має мати хоча б одне кафе"));
@@ -118,7 +119,7 @@ public class UserService {
             }
 
             userRepository.save(user);
-            return ResponseEntity.ok(new RegisterResponse(true, "Success"));
+            return ResponseEntity.ok(new RegisterResponse(true, getRespond(user, password).toString()));
 
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
