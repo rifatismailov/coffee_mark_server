@@ -36,9 +36,12 @@ public class User {
     @NotBlank
     private String image;
 
-    @Lob
-    @Column(columnDefinition = "TEXT")
-    private String public_key;
+//    @Lob
+//    @Column(columnDefinition = "TEXT")
+//    private String public_key;
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<PublicKeyRecord> publicKeys = new ArrayList<>();
 
     // Якщо бариста — список кафе, які він створив
     @OneToMany(mappedBy = "barista", cascade = CascadeType.ALL, orphanRemoval = true)
@@ -46,7 +49,6 @@ public class User {
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<UserCafe> selectedCafes = new ArrayList<>();
-
 }
 
 

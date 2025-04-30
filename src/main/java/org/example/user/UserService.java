@@ -13,6 +13,7 @@ import org.example.until.LocalErrorResponse;
 import org.example.until.LocalErrorType;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.bcrypt.BCrypt;
@@ -24,6 +25,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -34,6 +36,8 @@ import static org.example.until.KeyUtils.loadPublicKey;
 public class UserService {
     @Autowired
     private UserRepository userRepository;
+    @Autowired
+    private PublicKeyRecordRepository publicKeyRecordRepository;
     private static final String KEY_DIRECTORY = "src/main/resources/";
 
     public ResponseEntity<?> getPublicKey(PublicKeyRequest request) {
@@ -53,6 +57,34 @@ public class UserService {
         }
     }
 
+    private void savePublicKeyRecord(User user, String uuid, String publicKey) {
+        System.out.println("Спроба збереження ключа: UUID = " + uuid + ", userId = " + user.getId());
+        try {
+            Optional<PublicKeyRecord> existing = publicKeyRecordRepository.findByUuid(uuid);
+            System.out.println("existing: " + existing);
+            if (existing.isPresent()) {
+                System.out.println("Оновлення ключа для UUID: " + uuid);
+                PublicKeyRecord record = existing.get();
+                record.setPublicKey(publicKey);
+                record.setCreatedAt(LocalDateTime.now());
+                publicKeyRecordRepository.save(record);
+            } else {
+                System.out.println("Створення нового запису для UUID: " + uuid);
+                PublicKeyRecord record = new PublicKeyRecord();
+                record.setUser(user);
+                record.setUuid(uuid);
+                record.setPublicKey(publicKey);
+                record.setCreatedAt(LocalDateTime.now());
+                publicKeyRecordRepository.save(record);
+            }
+        }catch (Exception e) {
+            System.out.println("Exception: " + e);
+
+        }
+
+    }
+
+
     public ResponseEntity<?> updateLocalPublicKey(LocalPublicKeyRequest request) {
         try {
             PrivateKey privateKey = KeyUtils.loadPrivateKey(new File(KEY_DIRECTORY + "private.pem"));
@@ -66,7 +98,6 @@ public class UserService {
                         .status(HttpStatus.UNAUTHORIZED)
                         .body(new LocalErrorResponse(LocalErrorType.USER_NOT_FOUND));
             }
-
             User user = userOptional.get();
 
             if (!BCrypt.checkpw(password, user.getPassword())) {
@@ -75,10 +106,14 @@ public class UserService {
                         .body(new LocalErrorResponse(LocalErrorType.INVALID_PASSWORD));
             }
 
-            user.setPublic_key(request.getKey());
-            userRepository.save(user);
+            // Унікальний UUID пристрою
+            String uuid = authorizationRequest.getUuid();
+            String publicKey = request.getKey();
 
-            return ResponseEntity.ok(new LocalPublicKeyResponse(true, user.getUsername()));
+            // Перевірка, чи вже існує такий UUID
+            savePublicKeyRecord(user, uuid, publicKey);
+
+            return ResponseEntity.ok(new LocalPublicKeyResponse(true,getRespond(user, password, publicKey).toString()));
 
         } catch (Exception e) {
             return ResponseEntity
@@ -95,7 +130,6 @@ public class UserService {
             String email = Decryptor.decrypt(request.getEmail(), privateKey);
             String password = Decryptor.decrypt(request.getPassword(), privateKey);
             String image = Decryptor.decrypt(request.getImage(), privateKey);
-
             if (userRepository.existsByUsername(username)) {
                 return ResponseEntity.status(HttpStatus.CONFLICT)
                         .body(new LocalErrorResponse(LocalErrorType.USER_NAME_ALREADY_EXISTS));
@@ -108,6 +142,7 @@ public class UserService {
 
             User user = createUserFromRequest(request, username, email, password, image);
 
+
             if (user.getRole() == Role.BARISTA) {
                 System.out.println(request.getCafeList());
                 if (request.getCafeList() == null || request.getCafeList().isEmpty()) {
@@ -117,9 +152,16 @@ public class UserService {
                 List<Cafe> cafes = createCafeList(request, privateKey, user);
                 user.setCafes(cafes);
             }
-
             userRepository.save(user);
-            return ResponseEntity.ok(new RegisterResponse(true, getRespond(user, password).toString()));
+            String uuid = request.getUuid();
+            String publicKey = request.getPublic_key();
+
+            // Перевірка, чи вже існує такий UUID
+            System.out.println(user.getId()+" "+user.getEmail()+" "+user.getPassword()+" "+user.getImage());
+
+            savePublicKeyRecord(user, uuid, publicKey);
+
+            return ResponseEntity.ok(new RegisterResponse(true, getRespond(user, password, publicKey).toString()));
 
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -134,7 +176,6 @@ public class UserService {
         user.setEmail(email);
         user.setPassword(BCrypt.hashpw(password, BCrypt.gensalt()));
         user.setImage(image);
-        user.setPublic_key(request.getPublic_key());
         user.setRole(Role.valueOf(request.getRole()));
         return user;
     }
@@ -160,9 +201,11 @@ public class UserService {
 
             String email = Decryptor.decrypt(request.getEmail(), privateKey);
             String password = Decryptor.decrypt(request.getPassword(), privateKey);
-            System.out.println("Authorization request: " + email + " " + password + " " + request.getHash_user_public());
+            String uuid = request.getUuid();
 
-            // Пошук користувача в базі
+            System.out.println("Authorization request: " + email + " " + password+" "+uuid + " " + request.getHash_user_public());
+
+            // Пошук користувача
             Optional<User> userOptional = userRepository.findByEmail(email);
             if (userOptional.isEmpty()) {
                 return ResponseEntity
@@ -172,53 +215,64 @@ public class UserService {
 
             User user = userOptional.get();
 
-            // Звірка пароля (якщо ти використовуєш хешування, то треба через BCrypt)
+            // Перевірка паролю
             if (!BCrypt.checkpw(password, user.getPassword())) {
-                System.out.println("Невірний пароль " + user.getPublic_key());
-
                 return ResponseEntity
                         .status(HttpStatus.UNAUTHORIZED)
                         .body(new LocalErrorResponse(LocalErrorType.INVALID_PASSWORD));
             }
 
-            if (user.getPublic_key() != null) {
-                try {
-                    if (!Hash.getPublicKeyHash(loadPublicKey(user.getPublic_key())).equals(request.getHash_user_public())) {
-                        System.out.println("Невірний публічний ключ " + user.getPublic_key());
+            // Перевірка публічного ключа по UUID
+            Optional<PublicKeyRecord> keyRecordOptional = publicKeyRecordRepository.findByUuid(uuid);
+            if (keyRecordOptional.isEmpty()) {
 
-                        return ResponseEntity
-                                .status(HttpStatus.UNAUTHORIZED)
-                                .body(new LocalErrorResponse(LocalErrorType.INVALID_PUBLIC_KEY));
-                    }
-
-                } catch (Exception e) {
-                    return ResponseEntity
-                            .status(HttpStatus.UNAUTHORIZED)
-                            .body(new LocalErrorResponse(LocalErrorType.KEY_COMPARISON_ERROR));
-                }
-            } else {
+                // Якщо ключ не знайдено — повідомити клієнту, щоб надіслав ключ знову
                 return ResponseEntity
                         .status(HttpStatus.UNAUTHORIZED)
                         .body(new LocalErrorResponse(LocalErrorType.PUBLIC_KEY_MISSING));
             }
 
+            PublicKeyRecord record = keyRecordOptional.get();
+
+            // Перевірка, що ключ належить користувачу
+            if (!record.getUser().getId().equals(user.getId())) {
+                return ResponseEntity
+                        .status(HttpStatus.UNAUTHORIZED)
+                        .body(new LocalErrorResponse(LocalErrorType.INVALID_PUBLIC_KEY));
+            }
+
+            // Перевірка хешу ключа
+            try {
+                PublicKey storedKey = loadPublicKey(record.getPublicKey());
+                String hashStored = Hash.getPublicKeyHash(storedKey);
+
+                if (!hashStored.equals(request.getHash_user_public())) {
+                    return ResponseEntity
+                            .status(HttpStatus.UNAUTHORIZED)
+                            .body(new LocalErrorResponse(LocalErrorType.INVALID_PUBLIC_KEY));
+                }
+            } catch (Exception e) {
+                return ResponseEntity
+                        .status(HttpStatus.UNAUTHORIZED)
+                        .body(new LocalErrorResponse(LocalErrorType.KEY_COMPARISON_ERROR));
+            }
+
             // Авторизація успішна
-            AuthorizationResponse response = new AuthorizationResponse(true, getRespond(user, password).toString());
+            AuthorizationResponse response = new AuthorizationResponse(true, getRespond(user, password, record.getPublicKey()).toString());
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
-
+            System.out.println(e.getMessage());
             return ResponseEntity
                     .status(HttpStatus.UNAUTHORIZED)
                     .body(new LocalErrorResponse(LocalErrorType.AUTH_FAILED));
-
         }
     }
 
     @GetMapping("/info")
-    public Respond getRespond(User user, String password) throws Exception {
+    public Respond getRespond(User user, String password, String key) throws Exception {
         // Наприклад, у тебе є об’єкт user
-        PublicKey publicKey = loadPublicKey(user.getPublic_key());
+        PublicKey publicKey = loadPublicKey(key);
         return Respond.builder()
                 .username(Encryptor.encryptText(user.getUsername(), publicKey))
                 .email(Encryptor.encryptText(user.getEmail(), publicKey))
