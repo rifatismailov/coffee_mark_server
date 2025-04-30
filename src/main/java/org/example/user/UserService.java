@@ -32,6 +32,14 @@ import java.util.stream.Collectors;
 
 import static org.example.until.KeyUtils.loadPublicKey;
 
+/**
+ * UserService — це сервісний клас, який відповідає за:
+ * реєстрацію користувачів;
+ * авторизацію;
+ * збереження/оновлення публічного ключа;
+ * перевірку хеша ключа;
+ * створення записів про кафе, якщо користувач має роль BARISTA.
+ */
 @Service
 public class UserService {
     @Autowired
@@ -40,6 +48,9 @@ public class UserService {
     private PublicKeyRecordRepository publicKeyRecordRepository;
     private static final String KEY_DIRECTORY = "src/main/resources/";
 
+    /**
+     * Метод для отримання публічного ключа, якщо хеш не співпадає - надсилає ключ повторно.
+     */
     public ResponseEntity<?> getPublicKey(PublicKeyRequest request) {
         try {
             PublicKey publicKey = loadPublicKey(new File(KEY_DIRECTORY + "public.pem"));
@@ -57,7 +68,10 @@ public class UserService {
         }
     }
 
-    private void savePublicKeyRecord(User user, String uuid, String publicKey) {
+    /**
+     * Зберігає або оновлює запис публічного ключа користувача.
+     */
+    private void savePublicKeyRecord(@NotNull User user, String uuid, String publicKey) {
         System.out.println("Спроба збереження ключа: UUID = " + uuid + ", userId = " + user.getId());
         try {
             Optional<PublicKeyRecord> existing = publicKeyRecordRepository.findByUuid(uuid);
@@ -77,14 +91,16 @@ public class UserService {
                 record.setCreatedAt(LocalDateTime.now());
                 publicKeyRecordRepository.save(record);
             }
-        }catch (Exception e) {
+        } catch (Exception e) {
             System.out.println("Exception: " + e);
 
         }
 
     }
 
-
+    /**
+     * Оновлює локальний публічний ключ пристрою після авторизації.
+     */
     public ResponseEntity<?> updateLocalPublicKey(LocalPublicKeyRequest request) {
         try {
             PrivateKey privateKey = KeyUtils.loadPrivateKey(new File(KEY_DIRECTORY + "private.pem"));
@@ -113,7 +129,7 @@ public class UserService {
             // Перевірка, чи вже існує такий UUID
             savePublicKeyRecord(user, uuid, publicKey);
 
-            return ResponseEntity.ok(new LocalPublicKeyResponse(true,getRespond(user, password, publicKey).toString()));
+            return ResponseEntity.ok(new LocalPublicKeyResponse(true, getRespond(user, password, publicKey).toString()));
 
         } catch (Exception e) {
             return ResponseEntity
@@ -122,6 +138,9 @@ public class UserService {
         }
     }
 
+    /**
+     * Реєструє нового користувача з перевіркою унікальності та асоціацією з кафе.
+     */
     public ResponseEntity<?> registerUser(RegisterRequest request) {
         try {
             PrivateKey privateKey = KeyUtils.loadPrivateKey(new File(KEY_DIRECTORY + "private.pem"));
@@ -157,7 +176,7 @@ public class UserService {
             String publicKey = request.getPublic_key();
 
             // Перевірка, чи вже існує такий UUID
-            System.out.println(user.getId()+" "+user.getEmail()+" "+user.getPassword()+" "+user.getImage());
+            System.out.println(user.getId() + " " + user.getEmail() + " " + user.getPassword() + " " + user.getImage());
 
             savePublicKeyRecord(user, uuid, publicKey);
 
@@ -169,6 +188,9 @@ public class UserService {
         }
     }
 
+    /**
+     * Створює обʼєкт користувача з даних запиту.
+     */
     @NotNull
     private User createUserFromRequest(@NotNull RegisterRequest request, String username, String email, String password, String image) {
         User user = new User();
@@ -180,6 +202,9 @@ public class UserService {
         return user;
     }
 
+    /**
+     * Створює список кафе для користувача-барісти.
+     */
     private List<Cafe> createCafeList(@NotNull RegisterRequest request, PrivateKey privateKey, User user) {
         return request.getCafeList().stream().map(c -> {
             Cafe cafe = new Cafe();
@@ -195,6 +220,9 @@ public class UserService {
         }).collect(Collectors.toList());
     }
 
+    /**
+     * Обробляє запит авторизації користувача з перевіркою публічного ключа.
+     */
     public ResponseEntity<?> authorization(AuthorizationRequest request) {
         try {
             PrivateKey privateKey = KeyUtils.loadPrivateKey(new File(KEY_DIRECTORY + "private.pem"));
@@ -203,7 +231,7 @@ public class UserService {
             String password = Decryptor.decrypt(request.getPassword(), privateKey);
             String uuid = request.getUuid();
 
-            System.out.println("Authorization request: " + email + " " + password+" "+uuid + " " + request.getHash_user_public());
+            System.out.println("Authorization request: " + email + " " + password + " " + uuid + " " + request.getHash_user_public());
 
             // Пошук користувача
             Optional<User> userOptional = userRepository.findByEmail(email);
@@ -269,6 +297,9 @@ public class UserService {
         }
     }
 
+    /**
+     * Створює відповідь для клієнта.
+     */
     @GetMapping("/info")
     public Respond getRespond(User user, String password, String key) throws Exception {
         // Наприклад, у тебе є об’єкт user
