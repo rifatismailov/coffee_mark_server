@@ -12,6 +12,8 @@ import org.example.until.KeyUtils;
 import org.example.until.LocalErrorResponse;
 import org.example.until.LocalErrorType;
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.http.HttpStatus;
@@ -42,6 +44,8 @@ import static org.example.until.KeyUtils.loadPublicKey;
  */
 @Service
 public class UserService {
+    private static final Logger logger = LoggerFactory.getLogger(UserService.class);
+
     @Autowired
     private UserRepository userRepository;
     @Autowired
@@ -55,7 +59,7 @@ public class UserService {
         try {
             PublicKey publicKey = loadPublicKey(new File(KEY_DIRECTORY + "public.pem"));
             if (!Hash.getPublicKeyHash(publicKey).equals(request.getHash())) {
-                System.out.println("PublicKey hash: " + request.getHash());
+                logger.info("Public key hash: " + request.getHash());
                 // Читаємо публічний ключ з файлу у строку
                 String publicKeyStr = new String(Files.readAllBytes(Paths.get(KEY_DIRECTORY + "public.pem")));
 
@@ -72,18 +76,17 @@ public class UserService {
      * Зберігає або оновлює запис публічного ключа користувача.
      */
     private void savePublicKeyRecord(@NotNull User user, String uuid, String publicKey) {
-        System.out.println("Спроба збереження ключа: UUID = " + uuid + ", userId = " + user.getId());
+        logger.info("Спроба збереження ключа: UUID = {}, userId = {}", uuid, user.getId());
         try {
             Optional<PublicKeyRecord> existing = publicKeyRecordRepository.findByUuid(uuid);
-            System.out.println("existing: " + existing);
             if (existing.isPresent()) {
-                System.out.println("Оновлення ключа для UUID: " + uuid);
+                logger.info("Оновлення ключа для UUID: {}", uuid);
                 PublicKeyRecord record = existing.get();
                 record.setPublicKey(publicKey);
                 record.setCreatedAt(LocalDateTime.now());
                 publicKeyRecordRepository.save(record);
             } else {
-                System.out.println("Створення нового запису для UUID: " + uuid);
+                logger.info("Створення нового запису для UUID: {}", uuid);
                 PublicKeyRecord record = new PublicKeyRecord();
                 record.setUser(user);
                 record.setUuid(uuid);
@@ -92,10 +95,8 @@ public class UserService {
                 publicKeyRecordRepository.save(record);
             }
         } catch (Exception e) {
-            System.out.println("Exception: " + e);
-
+            logger.error("Exception: {}", e);
         }
-
     }
 
     /**
@@ -128,6 +129,7 @@ public class UserService {
 
             // Перевірка, чи вже існує такий UUID
             savePublicKeyRecord(user, uuid, publicKey);
+            logger.info("Authorization User: {} uuid: {}", user.getUsername(), uuid);
 
             return ResponseEntity.ok(new LocalPublicKeyResponse(true, getRespond(user, password, publicKey).toString()));
 
@@ -176,8 +178,6 @@ public class UserService {
             String publicKey = request.getPublic_key();
 
             // Перевірка, чи вже існує такий UUID
-            System.out.println(user.getId() + " " + user.getEmail() + " " + user.getPassword() + " " + user.getImage());
-
             savePublicKeyRecord(user, uuid, publicKey);
 
             return ResponseEntity.ok(new RegisterResponse(true, getRespond(user, password, publicKey).toString()));
@@ -230,9 +230,6 @@ public class UserService {
             String email = Decryptor.decrypt(request.getEmail(), privateKey);
             String password = Decryptor.decrypt(request.getPassword(), privateKey);
             String uuid = request.getUuid();
-
-            System.out.println("Authorization request: " + email + " " + password + " " + uuid + " " + request.getHash_user_public());
-
             // Пошук користувача
             Optional<User> userOptional = userRepository.findByEmail(email);
             if (userOptional.isEmpty()) {
@@ -287,6 +284,8 @@ public class UserService {
 
             // Авторизація успішна
             AuthorizationResponse response = new AuthorizationResponse(true, getRespond(user, password, record.getPublicKey()).toString());
+            logger.info("Authorization User: {} uuid: {}", user.getUsername(), uuid);
+
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
